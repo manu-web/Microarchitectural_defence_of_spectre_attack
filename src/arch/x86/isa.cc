@@ -151,7 +151,8 @@ RegClass matRegClass(MatRegClass, MatRegClassName, 1, debug::MatRegs);
 
 } // anonymous namespace
 
-ISA::ISA(const X86ISAParams &p) : BaseISA(p), vendorString(p.vendor_string)
+//Setting the fuzzing param
+ISA::ISA(const X86ISAParams &p) : BaseISA(p), vendorString(p.vendor_string), enableFuzzing(p.fuzz_TSC)
 {
     fatal_if(vendorString.size() != 12,
              "CPUID vendor string must be 12 characters\n");
@@ -219,7 +220,8 @@ RegVal
 ISA::readMiscReg(RegIndex idx)
 {
     if (idx == misc_reg::Tsc) {
-        return regVal[misc_reg::Tsc] + tc->getCpuPtr()->curCycle();
+        if(enableFuzzing) return regVal[misc_reg::Tsc] + 100*tc->getCpuPtr()->curCycle();
+        else return regVal[misc_reg::Tsc] + tc->getCpuPtr()->curCycle();
     }
 
     if (idx == misc_reg::Fsw) {
