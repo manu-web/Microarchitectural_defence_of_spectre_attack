@@ -1073,7 +1073,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
         regScoreboard[dest_reg->flatIndex()] = true;
     }
 
-    if(!completed_inst->isSquashed() && completed_inst->isCondCtrl()) memDepUnit[completed_inst->threadNumber].branchResolve(completed_inst->seqNum) ;//Task2 Changes
+    if (!completed_inst->isSquashed() && completed_inst->isCondCtrl()) memDepUnit[completed_inst->threadNumber].branchResolve(completed_inst->seqNum) ;//Task2 Changes
 
     return dependents;
 }

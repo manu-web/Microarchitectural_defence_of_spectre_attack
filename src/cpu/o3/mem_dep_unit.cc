@@ -621,8 +621,8 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
         }
     }
     else if (enableTaintedScheduling) { // Task3 changes
-        if(woken_inst_entry->inst->isLoad() && !branchSeqNum.empty() && woken_inst_entry->inst->seqNum > *branchSeqNum.begin()) {
-            if (woken_inst_entry->inst->taintedLoad == true) {
+        if (woken_inst_entry->inst->isLoad() && !branchSeqNum.empty() && woken_inst_entry->inst->seqNum > *branchSeqNum.begin()) {
+            if (woken_inst_entry->inst->taintedLoad) {
                 woken_inst_entry->inst->blockedLoad = true;
                 DPRINTF(MemDepUnit, "Blocking Load instruction [sn:%lli] "
                     "from the ready list.\n", woken_inst_entry->inst->seqNum);
