@@ -58,6 +58,7 @@ MemDepUnit::MemDepUnit(const BaseO3CPUParams &params)
     : _name(params.name + ".memdepunit"),
       depPred(params.store_set_clear_period, params.SSITSize,
               params.LFSTSize),
+      enableNaiveScheduling(params.delayCtrlSpecLoad),
       iqPtr(NULL),
       stats(nullptr)
 {
@@ -93,6 +94,7 @@ MemDepUnit::init(const BaseO3CPUParams &params, ThreadID tid, CPU *cpu)
 {
     DPRINTF(MemDepUnit, "Creating MemDepUnit %i object.\n",tid);
 
+    enableNaiveScheduling = params.delayCtrlSpecLoad;
     _name = csprintf("%s.memDep%d", params.name, tid);
     id = tid;
 
@@ -606,9 +608,59 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
 
     assert(!woken_inst_entry->squashed);
 
+    /*Task2 changes*/
+    //Mark load as blocked and return
+    if(enableNaiveScheduling) {
+        if(woken_inst_entry->inst->isLoad() && !branchSeqNum.empty() && woken_inst_entry->inst->seqNum > *branchSeqNum.begin()) {
+            woken_inst_entry->inst->blockedLoad = true;
+            DPRINTF(MemDepUnit, "Blocking Load instruction [sn:%lli] "
+                "from the ready list.\n", woken_inst_entry->inst->seqNum);
+            return;
+        }
+    }
+
     iqPtr->addReadyMemInst(woken_inst_entry->inst);
 }
 
+/*Task2 changes*/
+//Resolve dependents
+void MemDepUnit::branchResolve(uint64_t seq_num) {
+      //Race condition with Squash taken care of here
+      if(!branchSeqNum.count(seq_num)) return;
+
+      branchSeqNum.erase(seq_num);
+      //std::cout << "Removing branch from resolve : " << seq_num << std::endl;
+      
+      //Wakeup any dependents
+      for (ThreadID tid = 0; tid < MaxThreads; tid++) {
+
+        ListIt inst_list_it = instList[tid].begin();
+        int num = 0;
+
+        while (inst_list_it != instList[tid].end()) {
+            MemDepEntryPtr inst_entry = findInHash(*inst_list_it);
+
+            if(!branchSeqNum.empty()) {
+                if((*inst_list_it)->isLoad() && ((*inst_list_it)->blockedLoad) && (*inst_list_it)->seqNum > seq_num && ((*inst_list_it)->seqNum < *branchSeqNum.begin())) {
+                (*inst_list_it)->blockedLoad = false;
+                //std::cout << "(If)Unblocking load: " << (*inst_list_it)->seqNum << std::endl;
+
+                moveToReady(inst_entry);
+                }
+            }
+            else {
+                if ((*inst_list_it)->isLoad() && ((*inst_list_it)->blockedLoad)) {
+                    (*inst_list_it)->blockedLoad = false;
+
+                    //std::cout << "(Else) Unblocking load: " << (*inst_list_it)->seqNum << std::endl;
+                    moveToReady(inst_entry);
+                }
+            }
+            inst_list_it++;
+            ++num;
+        }
+      }
+}
 
 void
 MemDepUnit::dumpLists()

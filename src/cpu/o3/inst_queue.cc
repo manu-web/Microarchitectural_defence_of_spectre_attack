@@ -577,6 +577,9 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 
     assert(freeEntries != 0);
 
+    /*Task2 changes*/
+    if(new_inst->isCondCtrl()) memDepUnit[new_inst->threadNumber].addBranchSeqNum(new_inst->seqNum);
+
     instList[new_inst->threadNumber].push_back(new_inst);
 
     --freeEntries;
@@ -948,13 +951,20 @@ InstructionQueue::scheduleNonSpec(const InstSeqNum &inst)
 void
 InstructionQueue::commit(const InstSeqNum &inst, ThreadID tid)
 {
-    DPRINTF(IQ, "[tid:%i] Committing instructions older than [sn:%llu]\n",
-            tid,inst);
+    //DPRINTF(IQ, 
+    //cprintf("[tid:%i] Committing instructions older than [sn:%llu]\n",
+      //      tid,inst);
 
     ListIt iq_it = instList[tid].begin();
 
     while (iq_it != instList[tid].end() &&
            (*iq_it)->seqNum <= inst) {
+        /*if((*iq_it)->isCondCtrl()) {
+                cprintf("Committing branch [sn:%d]\n", (*iq_it)->seqNum);
+
+        }*/
+        //cprintf("Commiting a NON-branch [sn:%d]\n", (*iq_it)->seqNum);
+
         ++iq_it;
         instList[tid].pop_front();
     }
@@ -966,7 +976,7 @@ int
 InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 {
     int dependents = 0;
-
+   // if(completed_inst->isSquashed()) return dependents; //TASK2 FIXME
     // The instruction queue here takes care of both floating and int ops
     if (completed_inst->isFloating()) {
         iqIOStats.fpInstQueueWakeupAccesses++;
@@ -978,7 +988,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
     completed_inst->lastWakeDependents = curTick();
 
-    DPRINTF(IQ, "Waking dependents of completed instruction.\n");
+    DPRINTF(IQ, "Waking dependents of completed instruction sn:%d.\n", completed_inst->seqNum);
 
     assert(!completed_inst->isSquashed());
 
@@ -1060,6 +1070,9 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
         // Mark the scoreboard as having that register ready.
         regScoreboard[dest_reg->flatIndex()] = true;
     }
+    
+    if(!completed_inst->isSquashed() && completed_inst->isCondCtrl()) memDepUnit[completed_inst->threadNumber].branchResolve(completed_inst->seqNum) ;//Task2 Changes
+
     return dependents;
 }
 
@@ -1197,6 +1210,7 @@ InstructionQueue::doSquash(ThreadID tid)
            (*squash_it)->seqNum > squashedSeqNum[tid]) {
 
         DynInstPtr squashed_inst = (*squash_it);
+
         if (squashed_inst->isFloating()) {
             iqIOStats.fpInstQueueWrites++;
         } else if (squashed_inst->isVector()) {
@@ -1210,6 +1224,10 @@ InstructionQueue::doSquash(ThreadID tid)
         if (squashed_inst->threadNumber != tid ||
             squashed_inst->isSquashedInIQ()) {
             --squash_it;
+             /*Task2 changes*/
+            //if(squashed_inst->isCondCtrl()) memDepUnit[squashed_inst->threadNumber].removeBranchSeqNum(squashed_inst->seqNum);
+            DPRINTF(IQ, "Instruction already squashed : %d\n",
+                    squashed_inst->seqNum);
             continue;
         }
 
@@ -1282,6 +1300,9 @@ InstructionQueue::doSquash(ThreadID tid)
                 }
             }
 
+            /*Task2 changes*/
+            //if(squashed_inst->isCondCtrl()) memDepUnit[squashed_inst->threadNumber].removeBranchSeqNum(squashed_inst->seqNum);
+            
             // Might want to also clear out the head of the dependency graph.
 
             // Mark it as squashed within the IQ.
@@ -1318,7 +1339,12 @@ InstructionQueue::doSquash(ThreadID tid)
             assert(dependGraph.empty(dest_reg->flatIndex()));
             dependGraph.clearInst(dest_reg->flatIndex());
         }
+        
+        /*Task2 changes*/
+        if(squashed_inst->isCondCtrl()) memDepUnit[squashed_inst->threadNumber].removeBranchSeqNum(squashed_inst->seqNum);
         instList[tid].erase(squash_it--);
+
+
         ++iqStats.squashedInstsExamined;
     }
 }

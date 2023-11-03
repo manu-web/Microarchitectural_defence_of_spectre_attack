@@ -161,6 +161,22 @@ class MemDepUnit
     /** Debugging function to dump the lists of instructions. */
     void dumpLists();
 
+    /*Task2 changes*/
+
+    void addBranchSeqNum(uint64_t seq_num) {
+      //std::cout << "Adding branch : " << seq_num << std::endl;
+      assert(!branchSeqNum.count(seq_num));
+      branchSeqNum.insert(seq_num);
+    }
+
+    void removeBranchSeqNum(uint64_t seq_num) {
+      //std::cout << "Squash removing branch : " << seq_num << std::endl;
+      //If branch is already resolved then nothing to remove
+      if(branchSeqNum.count(seq_num)) branchSeqNum.erase(seq_num);
+    }
+
+    void branchResolve(uint64_t seq_num);
+
   private:
 
     /** Completes a memory instruction. */
@@ -208,6 +224,8 @@ class MemDepUnit
         bool completed = false;
         /** If the instruction is squashed. */
         bool squashed = false;
+        /*Task2 Changes*/
+        bool blockedLoad = false;
 
         /** For debugging. */
 #ifdef GEM5_DEBUG
@@ -223,6 +241,9 @@ class MemDepUnit
     /** Moves an entry to the ready list. */
     void moveToReady(MemDepEntryPtr &ready_inst_entry);
 
+    /*Task2 changes*/
+    std::set<uint64_t> branchSeqNum;
+
     typedef std::unordered_map<InstSeqNum, MemDepEntryPtr, SNHash> MemDepHash;
 
     typedef typename MemDepHash::iterator MemDepHashIt;
@@ -232,6 +253,9 @@ class MemDepUnit
 
     /** A list of all instructions in the memory dependence unit. */
     std::list<DynInstPtr> instList[MaxThreads];
+    
+    /*Task2 changes*/
+    //std::list<DynInstPtr> instListDelayed[MaxThreads];
 
     /** A list of all instructions that are going to be replayed. */
     std::list<DynInstPtr> instsToReplay;
@@ -260,6 +284,9 @@ class MemDepUnit
 
     /** Pointer to the IQ. */
     InstructionQueue *iqPtr;
+
+    /*Task2 changes*/
+    bool enableNaiveScheduling = false;
 
     /** The thread id of this memory dependence unit. */
     int id;
