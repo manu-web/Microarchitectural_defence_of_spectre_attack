@@ -193,4 +193,4 @@ class BaseO3CPU(BaseCPU):
     )
     needsTSO = Param.Bool(False, "Enable TSO Memory model")
     delayCtrlSpecLoad = Param.Bool(False, "Naive Load scheduling logic")
-
+    delayTaintedLoad = Param.Bool(False, "Tainted Load scheduling logic")

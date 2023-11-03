@@ -59,6 +59,7 @@ MemDepUnit::MemDepUnit(const BaseO3CPUParams &params)
       depPred(params.store_set_clear_period, params.SSITSize,
               params.LFSTSize),
       enableNaiveScheduling(params.delayCtrlSpecLoad),
+      enableTaintedScheduling(params.delayTaintedLoad),
       iqPtr(NULL),
       stats(nullptr)
 {
@@ -95,6 +96,7 @@ MemDepUnit::init(const BaseO3CPUParams &params, ThreadID tid, CPU *cpu)
     DPRINTF(MemDepUnit, "Creating MemDepUnit %i object.\n",tid);
 
     enableNaiveScheduling = params.delayCtrlSpecLoad;
+    enableTaintedScheduling = params.delayTaintedLoad;
     _name = csprintf("%s.memDep%d", params.name, tid);
     id = tid;
 
@@ -618,6 +620,21 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
             return;
         }
     }
+    else if (enableTaintedScheduling) { // Task3 changes
+        if(woken_inst_entry->inst->isLoad() && !branchSeqNum.empty() && woken_inst_entry->inst->seqNum > *branchSeqNum.begin()) {
+            if (woken_inst_entry->inst->taintedLoad == true) {
+                woken_inst_entry->inst->blockedLoad = true;
+                DPRINTF(MemDepUnit, "Blocking Load instruction [sn:%lli] "
+                    "from the ready list.\n", woken_inst_entry->inst->seqNum);
+                return;
+            }
+            else {
+                woken_inst_entry->inst->taintedLoad = true;
+                DPRINTF(MemDepUnit, "Tainting Load instruction [sn:%lli] "
+                    "from the ready list.\n", woken_inst_entry->inst->seqNum);
+            }
+        }
+    }
 
     iqPtr->addReadyMemInst(woken_inst_entry->inst);
 }
@@ -630,7 +647,7 @@ void MemDepUnit::branchResolve(uint64_t seq_num) {
 
       branchSeqNum.erase(seq_num);
       //std::cout << "Removing branch from resolve : " << seq_num << std::endl;
-      
+
       //Wakeup any dependents
       for (ThreadID tid = 0; tid < MaxThreads; tid++) {
 

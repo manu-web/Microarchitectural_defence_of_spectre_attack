@@ -123,6 +123,9 @@ class DynInst : public ExecContext, public RefCounted
     /*Task2 changes*/
     bool blockedLoad = false;
 
+    /*Task3 changes*/
+    bool taintedLoad = false;
+
     /** The sequence number of the instruction. */
     InstSeqNum seqNum = 0;
 

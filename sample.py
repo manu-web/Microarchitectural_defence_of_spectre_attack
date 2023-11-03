@@ -11,6 +11,18 @@ from gem5.resources.workload import CustomWorkload
 import m5
 from m5.objects import *
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Spectre Defense')
+parser.add_argument("--fuzz_tsc",
+                    help=f"Enable TSC Fuzzing", default=False)
+parser.add_argument("--naive",
+                    help="Enable Naive Approach", default=False)
+parser.add_argument("--taint",
+                    help="Enable Taint Approach", default=False)
+
+options = parser.parse_args()
+
 cache_hierarchy = PrivateL1PrivateL2CacheHierarchy(l1d_size="32KiB", l1i_size="32KiB", l2_size="256KiB")
 memory = SingleChannelDDR3_1600("1GiB")
 
@@ -22,13 +34,13 @@ memory = SingleChannelDDR3_1600("1GiB")
 processor = SimpleProcessor(isa=ISA.X86,cpu_type=CPUTypes.O3, num_cores=1)
 
 # flag for fuzzing the TSC
-processor.cores[0].core.isa[0].fuzz_TSC=False
+processor.cores[0].core.isa[0].fuzz_TSC=options.fuzz_tsc
 
 # flag for delaying control-speculative loads
-processor.cores[0].core.delayCtrlSpecLoad=False
+processor.cores[0].core.delayCtrlSpecLoad=options.naive
 
 # flag for delaying tainted load
-#processor.cores[0].core.delayTaintedLoad=False
+processor.cores[0].core.delayTaintedLoad=options.taint
 
 #processor.cores[0].core.max_insts_any_thread=250000
 
@@ -40,6 +52,7 @@ board = SimpleBoard(
     cache_hierarchy=cache_hierarchy,
     )
 
+#binary = CustomResource("../spectre/spectre.gcc");
 binary = CustomResource("../spectre/spectre.gcc");
 board.set_se_binary_workload(binary)
 

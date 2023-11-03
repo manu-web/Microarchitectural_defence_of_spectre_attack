@@ -253,7 +253,7 @@ class MemDepUnit
 
     /** A list of all instructions in the memory dependence unit. */
     std::list<DynInstPtr> instList[MaxThreads];
-    
+
     /*Task2 changes*/
     //std::list<DynInstPtr> instListDelayed[MaxThreads];
 
@@ -287,6 +287,9 @@ class MemDepUnit
 
     /*Task2 changes*/
     bool enableNaiveScheduling = false;
+
+    /*Task3 changes*/
+    bool enableTaintedScheduling = false;
 
     /** The thread id of this memory dependence unit. */
     int id;

@@ -951,7 +951,7 @@ InstructionQueue::scheduleNonSpec(const InstSeqNum &inst)
 void
 InstructionQueue::commit(const InstSeqNum &inst, ThreadID tid)
 {
-    //DPRINTF(IQ, 
+    //DPRINTF(IQ,
     //cprintf("[tid:%i] Committing instructions older than [sn:%llu]\n",
       //      tid,inst);
 
@@ -1055,6 +1055,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
             // graph entries would need to hold the src_reg_idx.
             dep_inst->markSrcRegReady();
 
+            dep_inst->taintedLoad = completed_inst->taintedLoad;
+
             addIfReady(dep_inst);
 
             dep_inst = dependGraph.pop(dest_reg->flatIndex());
@@ -1070,7 +1072,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
         // Mark the scoreboard as having that register ready.
         regScoreboard[dest_reg->flatIndex()] = true;
     }
-    
+
     if(!completed_inst->isSquashed() && completed_inst->isCondCtrl()) memDepUnit[completed_inst->threadNumber].branchResolve(completed_inst->seqNum) ;//Task2 Changes
 
     return dependents;
@@ -1302,7 +1304,7 @@ InstructionQueue::doSquash(ThreadID tid)
 
             /*Task2 changes*/
             //if(squashed_inst->isCondCtrl()) memDepUnit[squashed_inst->threadNumber].removeBranchSeqNum(squashed_inst->seqNum);
-            
+
             // Might want to also clear out the head of the dependency graph.
 
             // Mark it as squashed within the IQ.
@@ -1339,7 +1341,7 @@ InstructionQueue::doSquash(ThreadID tid)
             assert(dependGraph.empty(dest_reg->flatIndex()));
             dependGraph.clearInst(dest_reg->flatIndex());
         }
-        
+
         /*Task2 changes*/
         if(squashed_inst->isCondCtrl()) memDepUnit[squashed_inst->threadNumber].removeBranchSeqNum(squashed_inst->seqNum);
         instList[tid].erase(squash_it--);
