@@ -187,7 +187,8 @@ class DynInst : public ExecContext, public RefCounted
         ReqMade,
         MemOpDone,
         HtmFromTransaction,
-        MaxFlags
+        MaxFlags,
+        WaitingForBranchResolve
     };
 
   private:
@@ -523,6 +524,11 @@ class DynInst : public ExecContext, public RefCounted
     {
         instFlags[PredTaken] = predicted_taken;
     }
+
+    /** Returns whether the instruction is waiting on a branch resolve*/
+    bool readWaitingForBranchResolve() { return instFlags[WaitingForBranchResolve];}
+    void clearWaitingForBranchResolve() { instFlags[WaitingForBranchResolve] = false;}
+    void setWaitingForBranchResolve() { instFlags[WaitingForBranchResolve] = true;}
 
     /** Returns whether the instruction mispredicted. */
     bool

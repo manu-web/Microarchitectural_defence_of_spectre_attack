@@ -163,6 +163,12 @@ class MemDepUnit
 
   private:
 
+
+    /** Functions for branch dependency*/
+    void insert_branch(const DynInstPtr &inst);
+    void remove_branch(const DynInstPtr &inst);
+    void resolve_branch(const DynInstPtr &inst);
+
     /** Completes a memory instruction. */
     void completed(const DynInstPtr &inst);
 
@@ -243,6 +249,9 @@ class MemDepUnit
      */
     StoreSet depPred;
 
+    /* A tracker for resolved branch dependencies*/
+    std::set<uint_64> branch_tracker;
+
     /** Sequence numbers of outstanding load barriers. */
     std::unordered_set<InstSeqNum> loadBarrierSNs;
 
@@ -281,5 +290,9 @@ class MemDepUnit
 
 } // namespace o3
 } // namespace gem5
+
+
+
+
 
 #endif // __CPU_O3_MEM_DEP_UNIT_HH__

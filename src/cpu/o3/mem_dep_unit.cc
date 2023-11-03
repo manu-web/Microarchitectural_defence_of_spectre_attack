@@ -56,7 +56,7 @@ MemDepUnit::MemDepUnit() : iqPtr(NULL), stats(nullptr) {}
 
 MemDepUnit::MemDepUnit(const BaseO3CPUParams &params)
     : _name(params.name + ".memdepunit"),
-      depPred(params.store_set_clear_period, params.SSITSize,
+      depPred(params.store_set_clear_period, params.delayCtrlSpecLoad, params.SSITSize,
               params.LFSTSize),
       iqPtr(NULL),
       stats(nullptr)
@@ -96,7 +96,7 @@ MemDepUnit::init(const BaseO3CPUParams &params, ThreadID tid, CPU *cpu)
     _name = csprintf("%s.memDep%d", params.name, tid);
     id = tid;
 
-    depPred.init(params.store_set_clear_period, params.SSITSize,
+    depPred.init(params.store_set_clear_period, params.delayCtrlSpecLoad, params.SSITSize,
             params.LFSTSize);
 
     std::string stats_group_name = csprintf("MemDepUnit__%i", tid);
@@ -605,7 +605,11 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
             "to the ready list.\n", woken_inst_entry->inst->seqNum);
 
     assert(!woken_inst_entry->squashed);
+    if(woken_inst_entry->inst.isLoad() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum)
+        woken_inst_entry->setWaitingForBranchResolve();
+        return;
 
+    
     iqPtr->addReadyMemInst(woken_inst_entry->inst);
 }
 
@@ -639,6 +643,39 @@ MemDepUnit::dumpLists()
     cprintf("Memory dependence entries: %i\n", MemDepEntry::memdep_count);
 #endif
 }
+
+    void MemDepUnit::insert_branch(const DynInstPtr &inst){
+        branch_tracker.insert(inst->seqNum);
+    }
+
+    void MemDepUnit::remove_branch(const DynInstPtr &inst){
+        branch_tracker.erase(inst->seqNum);
+    }
+
+    void MemDepUnit::resolve_branch(const DynInstPtr &inst){
+        branch_tracker.erase(inst->seqNum);
+
+        for (ThreadID tid = 0; tid < MaxThreads; tid++) {
+            
+
+            ListIt inst_list_it = instList[tid].begin();
+            int num = 0;
+
+            while (inst_list_it != instList[tid].end()) {
+                if(inst_list_it->readWaitingForBranchResolve() == true){
+                    moveToReady(*inst_list_it);
+
+#ifdef GEM5_DEBUG
+                // Add a good debug code here!!!!
+                //cprintf("Memory dependence entries: %i\n", MemDepEntry::memdep_count);
+#endif
+                    ++num;
+                }
+
+                inst_list_it++;              
+            }
+        }   
+    }
 
 } // namespace o3
 } // namespace gem5

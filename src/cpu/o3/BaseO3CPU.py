@@ -148,6 +148,10 @@ class BaseO3CPU(BaseCPU):
         "Should dependency violations be checked for "
         "loads & stores or just stores",
     )
+    delayCtrlSpecLoad = Param.Bool(
+        True,
+        "Flag for delaying execution for speculative load under a unresolved branch"
+    )
     store_set_clear_period = Param.Unsigned(
         250000,
         "Number of load/store insts before the dep predictor "
