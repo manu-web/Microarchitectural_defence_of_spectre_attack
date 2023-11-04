@@ -46,6 +46,7 @@
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <stdint.h>
 
 #include "base/statistics.hh"
 #include "cpu/inst_seq.hh"
@@ -214,6 +215,8 @@ class MemDepUnit
         bool completed = false;
         /** If the instruction is squashed. */
         bool squashed = false;
+
+        bool delayCtrlSpecLoad = false;
 
         /** For debugging. */
 #ifdef GEM5_DEBUG

@@ -56,10 +56,11 @@ MemDepUnit::MemDepUnit() : iqPtr(NULL), stats(nullptr) {}
 
 MemDepUnit::MemDepUnit(const BaseO3CPUParams &params)
     : _name(params.name + ".memdepunit"),
-      depPred(params.store_set_clear_period, params.delayCtrlSpecLoad, params.SSITSize,
+      depPred(params.store_set_clear_period, params.SSITSize,
               params.LFSTSize),
       iqPtr(NULL),
-      stats(nullptr)
+      stats(nullptr),
+      delayCtrlSpecLoad(params.delayCtrlSpecLoad)
 {
     DPRINTF(MemDepUnit, "Creating MemDepUnit object.\n");
 }
@@ -95,8 +96,9 @@ MemDepUnit::init(const BaseO3CPUParams &params, ThreadID tid, CPU *cpu)
 
     _name = csprintf("%s.memDep%d", params.name, tid);
     id = tid;
+    delayCtrlSpecLoad = params.delayCtrlSpecLoad;
 
-    depPred.init(params.store_set_clear_period, params.delayCtrlSpecLoad, params.SSITSize,
+    depPred.init(params.store_set_clear_period, params.SSITSize,
             params.LFSTSize);
 
     std::string stats_group_name = csprintf("MemDepUnit__%i", tid);
@@ -605,11 +607,14 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
             "to the ready list.\n", woken_inst_entry->inst->seqNum);
 
     assert(!woken_inst_entry->squashed);
-    if(woken_inst_entry->inst.isLoad() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum)
-        woken_inst_entry->setWaitingForBranchResolve();
-        return;
 
-    
+    if(delayCtrlSpecLoad){
+        if(woken_inst_entry->inst.isLoad() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum){
+            woken_inst_entry->setWaitingForBranchResolve();
+            return;
+        }
+    }
+
     iqPtr->addReadyMemInst(woken_inst_entry->inst);
 }
 
@@ -653,6 +658,11 @@ MemDepUnit::dumpLists()
     }
 
     void MemDepUnit::resolve_branch(const DynInstPtr &inst){
+
+	//TO handle the case in which branch get squashed before this function is called or there is a race condition
+	if(branch_tracker.find(inst->seqNum) == branch_tracker.end())
+	    return;
+
         branch_tracker.erase(inst->seqNum);
 
         for (ThreadID tid = 0; tid < MaxThreads; tid++) {
