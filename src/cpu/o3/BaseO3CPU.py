@@ -150,7 +150,7 @@ class BaseO3CPU(BaseCPU):
     )
     delayCtrlSpecLoad = Param.Bool(
         False,
-        "Flag for delaying execution for speculative load under a unresolved branch"
+        "Flag for delaying execution for speculative load under a unresolved branch",
     )
     store_set_clear_period = Param.Unsigned(
         250000,

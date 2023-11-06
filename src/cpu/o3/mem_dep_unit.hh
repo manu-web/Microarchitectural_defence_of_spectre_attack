@@ -46,7 +46,7 @@
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
-#include <stdint.h>
+#include <cstdint>
 
 #include "base/statistics.hh"
 #include "cpu/inst_seq.hh"
@@ -162,13 +162,17 @@ class MemDepUnit
     /** Debugging function to dump the lists of instructions. */
     void dumpLists();
 
-  private:
+    bool delayCtrlSpecLoad;
 
+    /* A tracker for resolved branch dependencies*/
+    std::set<unsigned long long> branch_tracker;
 
     /** Functions for branch dependency*/
     void insert_branch(const DynInstPtr &inst);
     void remove_branch(const DynInstPtr &inst);
     void resolve_branch(const DynInstPtr &inst);
+
+  private:
 
     /** Completes a memory instruction. */
     void completed(const DynInstPtr &inst);
@@ -251,9 +255,6 @@ class MemDepUnit
      *  upon.
      */
     StoreSet depPred;
-
-    /* A tracker for resolved branch dependencies*/
-    std::set<uint_64> branch_tracker;
 
     /** Sequence numbers of outstanding load barriers. */
     std::unordered_set<InstSeqNum> loadBarrierSNs;

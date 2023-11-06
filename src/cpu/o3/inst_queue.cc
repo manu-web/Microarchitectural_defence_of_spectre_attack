@@ -593,7 +593,7 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 
     // Inserting a branch instruction into the branch_tracking set in mem_dep_unit 
     if(new_inst->isCondCtrl()) {
-        memDepUnit[new_inst->threadNumber]->insert_branch(new_inst);
+        memDepUnit[new_inst->threadNumber].insert_branch(new_inst);
     }
 
     if (new_inst->isMemRef()) {
@@ -994,7 +994,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
     // Wake up the dependent loads when the branch is resolved
     if(completed_inst->isCondCtrl()) {
-        memDepUnit[tid]->resolve_branch(completed_inst);
+        memDepUnit[tid].resolve_branch(completed_inst);
     }
 
     if (completed_inst->isMemRef()) {
@@ -1218,7 +1218,7 @@ InstructionQueue::doSquash(ThreadID tid)
 
         // Remove branch from mem_dep_unit when it is squashed
         if(squashed_inst->isCondCtrl())
-            memDepUnit[tid]->remove_branch(squashed_inst);
+            memDepUnit[tid].remove_branch(squashed_inst);
 
         // Only handle the instruction if it actually is in the IQ and
         // hasn't already been squashed in the IQ.

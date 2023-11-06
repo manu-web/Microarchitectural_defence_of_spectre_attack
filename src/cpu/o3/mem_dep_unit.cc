@@ -31,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <cstdint>
 
 #include "base/compiler.hh"
 #include "base/debug.hh"
@@ -609,8 +610,9 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
     assert(!woken_inst_entry->squashed);
 
     if(delayCtrlSpecLoad){
-        if(woken_inst_entry->inst.isLoad() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum){
-            woken_inst_entry->setWaitingForBranchResolve();
+        if(woken_inst_entry->inst->isLoad() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum && !branch_tracker.empty()){
+            woken_inst_entry->inst->setWaitingForBranchResolve();
+            DPRINTF(MemDepUnit, "Load waiting for branch resolve [sn:%lli] \n", woken_inst_entry->inst->seqNum);
             return;
         }
     }
@@ -651,29 +653,32 @@ MemDepUnit::dumpLists()
 
     void MemDepUnit::insert_branch(const DynInstPtr &inst){
         branch_tracker.insert(inst->seqNum);
+        DPRINTF(MemDepUnit, "Inserting branch [sn:%lli] \n", inst->seqNum);
     }
 
     void MemDepUnit::remove_branch(const DynInstPtr &inst){
         branch_tracker.erase(inst->seqNum);
+        DPRINTF(MemDepUnit, "Removing branch due to squash [sn:%lli] \n", inst->seqNum);
     }
 
     void MemDepUnit::resolve_branch(const DynInstPtr &inst){
 
-	//TO handle the case in which branch get squashed before this function is called or there is a race condition
-	if(branch_tracker.find(inst->seqNum) == branch_tracker.end())
-	    return;
+	    //TO handle the case in which branch get squashed before this function is called or there is a race condition
+	    if(branch_tracker.find(inst->seqNum) == branch_tracker.end())
+	        return;
 
+        DPRINTF(MemDepUnit, "Removing branch due to resolving [sn:%lli] \n", inst->seqNum);
         branch_tracker.erase(inst->seqNum);
 
         for (ThreadID tid = 0; tid < MaxThreads; tid++) {
-            
 
             ListIt inst_list_it = instList[tid].begin();
             int num = 0;
 
             while (inst_list_it != instList[tid].end()) {
-                if(inst_list_it->readWaitingForBranchResolve() == true){
-                    moveToReady(*inst_list_it);
+                if((*inst_list_it)->readWaitingForBranchResolve() == true){
+                    MemDepEntryPtr inst_entry = findInHash(*inst_list_it);
+                    moveToReady(inst_entry);
 
 #ifdef GEM5_DEBUG
                 // Add a good debug code here!!!!
@@ -682,9 +687,9 @@ MemDepUnit::dumpLists()
                     ++num;
                 }
 
-                inst_list_it++;              
+                inst_list_it++;
             }
-        }   
+        }
     }
 
 } // namespace o3
