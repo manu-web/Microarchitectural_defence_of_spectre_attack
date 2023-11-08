@@ -591,7 +591,7 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
     // register(s).
     addToProducers(new_inst);
 
-    // Inserting a branch instruction into the branch_tracking set in mem_dep_unit 
+    // Inserting a branch instruction into the branch_tracking set in mem_dep_unit
     if(new_inst->isCondCtrl()) {
         memDepUnit[new_inst->threadNumber].insert_branch(new_inst);
     }

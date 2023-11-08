@@ -612,7 +612,7 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
     if(delayCtrlSpecLoad){
         if(woken_inst_entry->inst->isLoad() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum && !branch_tracker.empty()){
             woken_inst_entry->inst->setWaitingForBranchResolve();
-            DPRINTF(MemDepUnit, "Load waiting for branch resolve [sn:%lli] \n", woken_inst_entry->inst->seqNum);
+            DPRINTF(MemDepUnit, "Load [sn:%lli] waiting for branch resolve [sn:%lli]\n", woken_inst_entry->inst->seqNum, *branch_tracker.begin());
             return;
         }
     }
@@ -657,6 +657,10 @@ MemDepUnit::dumpLists()
     }
 
     void MemDepUnit::remove_branch(const DynInstPtr &inst){
+
+        if(branch_tracker.find(inst->seqNum) == branch_tracker.end())
+	        return;
+        
         branch_tracker.erase(inst->seqNum);
         DPRINTF(MemDepUnit, "Removing branch due to squash [sn:%lli] \n", inst->seqNum);
     }
@@ -676,14 +680,12 @@ MemDepUnit::dumpLists()
             int num = 0;
 
             while (inst_list_it != instList[tid].end()) {
-                if((*inst_list_it)->readWaitingForBranchResolve() == true){
+                if((*inst_list_it)->readWaitingForBranchResolve() == true && (*inst_list_it)->isLoad()){
                     MemDepEntryPtr inst_entry = findInHash(*inst_list_it);
+                    (*inst_list_it)->clearWaitingForBranchResolve();
                     moveToReady(inst_entry);
 
-#ifdef GEM5_DEBUG
-                // Add a good debug code here!!!!
-                //cprintf("Memory dependence entries: %i\n", MemDepEntry::memdep_count);
-#endif
+                    DPRINTF(MemDepUnit, "Moving load dependent on branch [sn:%lli] to be ready\n", inst->seqNum);
                     ++num;
                 }
 
