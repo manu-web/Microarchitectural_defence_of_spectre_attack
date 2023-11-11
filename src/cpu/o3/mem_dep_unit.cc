@@ -610,7 +610,7 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
     assert(!woken_inst_entry->squashed);
 
     if(delayCtrlSpecLoad){
-        if(woken_inst_entry->inst->isLoad() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum && !branch_tracker.empty()){
+        if(woken_inst_entry->inst->isLoad() && !branch_tracker.empty() && *branch_tracker.begin() < woken_inst_entry->inst->seqNum){
             woken_inst_entry->inst->setWaitingForBranchResolve();
             DPRINTF(MemDepUnit, "Load [sn:%lli] waiting for branch resolve [sn:%lli]\n", woken_inst_entry->inst->seqNum, *branch_tracker.begin());
             return;
@@ -660,7 +660,7 @@ MemDepUnit::dumpLists()
 
         if(branch_tracker.find(inst->seqNum) == branch_tracker.end())
 	        return;
-        
+
         branch_tracker.erase(inst->seqNum);
         DPRINTF(MemDepUnit, "Removing branch due to squash [sn:%lli] \n", inst->seqNum);
     }
