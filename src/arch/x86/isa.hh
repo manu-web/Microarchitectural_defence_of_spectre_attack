@@ -71,6 +71,8 @@ class ISA : public BaseISA
     using Params = X86ISAParams;
     //Adding a variable to control TSC fuzzing
     bool enableFuzzing;
+    int fuzzTscExtent;
+    bool fuzzTscRand;
 
     ISA(const Params &p);
 

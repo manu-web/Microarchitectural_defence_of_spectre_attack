@@ -43,7 +43,12 @@ class X86ISA(BaseISA):
     cxx_header = "arch/x86/isa.hh"
 
     #Adding a parameter to control the TSC fuzzing
-    fuzz_TSC = Param.Bool(True, "Enable or disable fuzzing")
+    fuzz_TSC = Param.Bool(False, "Enable or disable fuzzing")
+    # Nearest value to round the TSC register value to
+    fuzz_TSC_extent = Param.Int(100, "Extent of fuzzing")
+    # Randomize the nerest value to round to. If true, the randomization will
+    # be between [0, fuzz_TSC_error-1]
+    fuzz_TSC_rand = Param.Bool(False, "Randomize the extent of fuzzing")
 
     # Here we set the default vector string to "HygonGenuine". Previously this
     # "M5 Simulator" but due to stricter checks in newer versions of GLIBC,
